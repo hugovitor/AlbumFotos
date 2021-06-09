@@ -93,6 +93,8 @@ namespace AlbumFotos.Controllers
             {
                 return NotFound();
             }
+
+            TempData["FotoTopo"] = album.FotoTopo;
             return View(album);
         }
 
@@ -101,17 +103,30 @@ namespace AlbumFotos.Controllers
         // more details see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("AlbumId,Destino,FotoTopo,Inicio,Fim")] Album album)
+        public async Task<IActionResult> Edit(int id, [Bind("AlbumId,Destino,FotoTopo,Inicio,Fim")] Album album, IFormFile arquivo)
         {
             if (id != album.AlbumId)
             {
                 return NotFound();
             }
 
+            if (String.IsNullOrEmpty(album.FotoTopo))
+                album.FotoTopo = TempData["FotoTopo"].ToString();
+
             if (ModelState.IsValid)
             {
                 try
                 {
+                    var linkUpload = Path.Combine(_hostingEnvironment.WebRootPath, "Imagens");
+
+                    if(arquivo != null)
+                    {
+                        using(var fileStream = new FileStream(Path.Combine(linkUpload, arquivo.FileName), FileMode.Create))
+                        {
+                            await arquivo.CopyToAsync(fileStream);
+                            album.FotoTopo = "~/Imagens/" + arquivo.FileName;
+                        }
+                    }
                     _context.Update(album);
                     await _context.SaveChangesAsync();
                 }
